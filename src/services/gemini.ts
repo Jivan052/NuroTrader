@@ -43,7 +43,7 @@ export type AIInsightResponse = {
 const aiInsightsCache: Record<string, { data: AIInsightResponse, timestamp: number }> = {};
 
 // Cache timeout - 30 minutes
-const CACHE_TIMEOUT = 30 * 60 * 1000;
+const CACHE_TIMEOUT = 10 * 1000;
 
 export const generateAIInsights = async (
   marketData: CoinGeckoMarketData,
@@ -106,8 +106,8 @@ export const generateAIInsights = async (
   `;
   
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`;
-    
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
