@@ -1,7 +1,7 @@
 
-# NeuroTrader AI Trading Platform
+# NuroTrader AI Trading Platform
 
-NeuroTrader is an AI-powered cryptocurrency trading platform with analytics, market insights, and an interactive AI agent.
+NuroTrader is an AI-powered cryptocurrency trading platform with analytics, market insights, and an interactive AI agent.
 
 ## Features
 
@@ -74,16 +74,6 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/d2f3f54b-9cf5-4cb4-89b9-bf50bd9f52e7) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
 
