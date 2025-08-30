@@ -56,12 +56,7 @@ type SentimentData = {
   news: number;
   positiveTopics: string[];
   negativeTopics: string[];
-  sources: {
-    twitter: number;
-    reddit: number;
-    news: number;
-  };
-  sentimentHistory: Array<{date: string; value: number}>;
+  sentimentHistory?: Array<{date: string; value: number}>;
 };
 
 type NewsItem = {
@@ -466,14 +461,14 @@ const AnalyticsDashboard: React.FC = () => {
               </div>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">Twitter</p>
-                <p className={`font-medium ${(contextSentimentData && contextSentimentData[activeToken]?.sources?.twitter || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {contextSentimentData && contextSentimentData[activeToken]?.sources?.twitter ? Math.abs(contextSentimentData[activeToken].sources.twitter).toFixed(1) : 0}%
+                <p className={`font-medium ${(contextSentimentData && contextSentimentData[activeToken]?.social || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {contextSentimentData && contextSentimentData[activeToken]?.social ? Math.abs(contextSentimentData[activeToken].social * 0.8).toFixed(1) : 0}%
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">News</p>
-                <p className={`font-medium ${(contextSentimentData && contextSentimentData[activeToken]?.sources?.news || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {contextSentimentData && contextSentimentData[activeToken]?.sources?.news ? Math.abs(contextSentimentData[activeToken].sources.news).toFixed(1) : 0}%
+                <p className={`font-medium ${(contextSentimentData && contextSentimentData[activeToken]?.news || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {contextSentimentData && contextSentimentData[activeToken]?.news ? Math.abs(contextSentimentData[activeToken].news).toFixed(1) : 0}%
                 </p>
               </div>
             </CardFooter>

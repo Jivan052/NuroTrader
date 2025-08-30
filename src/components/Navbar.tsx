@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/components/ui/navigation-menu";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Bot } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,6 +12,7 @@ const Navbar = () => {
     { name: "Analytics Hub", href: "#analytics" },
     { name: "NeuroTrader", href: "#neurotrader" },
     { name: "Multi-Chain", href: "#chains" },
+    { name: "AI Agent", href: "/agent", isPageLink: true, icon: Bot },
     { name: "Docs", href: "#docs" }
   ];
 
@@ -40,14 +42,29 @@ const Navbar = () => {
               <NavigationMenuList className="flex space-x-6">
                 {navItems.map((item) => (
                   <NavigationMenuItem key={item.name}>
-                    <motion.a
-                      href={item.href}
-                      className="text-silver hover:text-primary transition-colors duration-200 font-medium"
-                      whileHover={{ y: -2 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {item.name}
-                    </motion.a>
+                    {item.isPageLink ? (
+                      <motion.div
+                        whileHover={{ y: -2 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Link
+                          to={item.href}
+                          className="text-silver hover:text-primary transition-colors duration-200 font-medium flex items-center"
+                        >
+                          {item.icon && <item.icon className="h-4 w-4 mr-1" />}
+                          {item.name}
+                        </Link>
+                      </motion.div>
+                    ) : (
+                      <motion.a
+                        href={item.href}
+                        className="text-silver hover:text-primary transition-colors duration-200 font-medium"
+                        whileHover={{ y: -2 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {item.name}
+                      </motion.a>
+                    )}
                   </NavigationMenuItem>
                 ))}
               </NavigationMenuList>
@@ -88,15 +105,32 @@ const Navbar = () => {
         >
           <div className="py-4 space-y-3">
             {navItems.map((item) => (
-              <motion.a
-                key={item.name}
-                href={item.href}
-                className="block px-4 py-2 text-silver hover:text-primary hover:bg-accent/50 rounded-lg transition-all duration-200"
-                whileHover={{ x: 8 }}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.name}
-              </motion.a>
+              item.isPageLink ? (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className="block px-4 py-2 text-silver hover:text-primary hover:bg-accent/50 rounded-lg transition-all duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <motion.div 
+                    className="flex items-center"
+                    whileHover={{ x: 8 }}
+                  >
+                    {item.icon && <item.icon className="h-4 w-4 mr-2" />}
+                    {item.name}
+                  </motion.div>
+                </Link>
+              ) : (
+                <motion.a
+                  key={item.name}
+                  href={item.href}
+                  className="block px-4 py-2 text-silver hover:text-primary hover:bg-accent/50 rounded-lg transition-all duration-200"
+                  whileHover={{ x: 8 }}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.name}
+                </motion.a>
+              )
             ))}
             <div className="px-4 pt-2">
               <Button variant="hero" className="w-full" size="sm">

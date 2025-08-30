@@ -1,39 +1,53 @@
-# Welcome to your Lovable project
+# NeuroTrader AI Trading Platform
 
-## Project info
+NeuroTrader is an AI-powered cryptocurrency trading platform with analytics, market insights, and an interactive AI agent.
 
-**URL**: https://lovable.dev/projects/d2f3f54b-9cf5-4cb4-89b9-bf50bd9f52e7
+## Features
 
-## How can I edit this code?
+- **Interactive AI Agent**: Chat with our AI trading assistant
+- **Analytics Dashboard**: View comprehensive market analytics
+- **Multi-Chain Support**: Compatible with Ethereum, Solana, Avalanche, and Fantom
+- **Real-Time Data**: Live market data and trading insights
 
-There are several ways of editing your application.
+## Setup and Installation
 
-**Use Lovable**
+### Frontend Setup
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d2f3f54b-9cf5-4cb4-89b9-bf50bd9f52e7) and start prompting.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-Changes made via Lovable will be committed automatically to this repo.
+2. Run the frontend development server:
+   ```bash
+   npm run dev
+   ```
 
-**Use your preferred IDE**
+### Backend Setup
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Run the setup script to install backend dependencies:
+   ```bash
+   # On Windows
+   setup-backend.bat
+   
+   # On Unix/Mac
+   chmod +x setup-backend.sh
+   ./setup-backend.sh
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+2. Start the backend server:
+   ```bash
+   cd backend
+   npm run dev
+   ```
 
-Follow these steps:
+### Running Both Frontend and Backend
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+To run both servers simultaneously (requires concurrently package):
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm install -g concurrently  # Install globally if needed
+npm run dev:all
 ```
 
 **Edit a file directly in GitHub**
