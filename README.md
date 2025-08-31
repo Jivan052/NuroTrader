@@ -5,10 +5,12 @@ NuroTrader is an AI-powered cryptocurrency trading platform with analytics, mark
 
 ## Features
 
-- **Interactive AI Agent**: Chat with our AI trading assistant
+- **Interactive AI Agent**: Chat with our AI trading assistant with persistent conversations
 - **Analytics Dashboard**: View comprehensive market analytics
 - **Multi-Chain Support**: Compatible with Ethereum, Solana, Avalanche, and Fantom
 - **Real-Time Data**: Live market data and trading insights
+- **Persistent Chat Sessions**: User conversations stored in SQLite database
+- **AgentKit Integration**: Backend integration with AgentKit for intelligent responses
 
 ## Setup and Installation
 
@@ -26,20 +28,29 @@ NuroTrader is an AI-powered cryptocurrency trading platform with analytics, mark
 
 ### Backend Setup
 
-1. Run the setup script to install backend dependencies:
-   ```bash
-   # On Windows
-   setup-backend.bat
-   
-   # On Unix/Mac
-   chmod +x setup-backend.sh
-   ./setup-backend.sh
-   ```
-
-2. Start the backend server:
+1. Navigate to the backend directory:
    ```bash
    cd backend
-   npm run dev
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install express cors sqlite3 dotenv morgan express-rate-limit ts-node typescript uuid
+   ```
+
+3. Initialize the SQLite database:
+   ```bash
+   node setup-db.js
+   ```
+
+4. Create a `.env` file based on `.env.example` (optional):
+   ```bash
+   copy .env.example .env
+   ```
+
+5. Start the backend server:
+   ```bash
+   node server.js
    ```
 
 ### Running Both Frontend and Backend
@@ -65,13 +76,33 @@ npm run dev:all
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## Technologies Used
 
-This project is built with:
-
+### Frontend
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+- Framer Motion
+
+### Backend
+- Node.js
+- Express
+- SQLite (for persistent storage)
+- ts-node (for running TypeScript files)
+- AgentKit integration
+
+## Backend Architecture
+
+The backend is built with a modular architecture:
+
+1. **Express Server**: Handles HTTP requests and responses
+2. **SQLite Database**: Stores chat sessions and message history
+3. **Service Layer**: Interfaces with the AgentKit module
+4. **API Routes**: RESTful endpoints for the frontend
+5. **Rate Limiting**: Prevents API abuse
+6. **Error Handling**: Graceful error recovery
+
+All conversations with the AI agent are persisted in the database, allowing users to continue their sessions across visits.
 

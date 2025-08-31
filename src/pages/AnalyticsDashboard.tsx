@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAddress } from "@thirdweb-dev/react";
 import { 
   BarChart3, 
@@ -16,7 +17,18 @@ import {
   MessageSquare, 
   Activity,
   RefreshCcw,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  Sparkles,
+  Timer,
+  Globe,
+  Filter,
+  Search,
+  Calendar,
+  PieChart,
+  DollarSign,
+  Users,
+  Zap
 } from "lucide-react";
 import { 
   fetchSantimentCompleteData,
@@ -34,7 +46,7 @@ import { SentimentGauge } from "../components/charts/SentimentGauge";
 import { VolumeChart } from "../components/charts/VolumeChart";
 import { MarketStats } from "../components/charts/MarketStats";
 
-// Types for our data models
+// Enhanced types
 type ChainData = {
   price: number;
   priceChange24h: number;
@@ -51,7 +63,7 @@ type ChainData = {
 };
 
 type SentimentData = {
-  overall: number; // -100 to 100
+  overall: number;
   social: number;
   news: number;
   positiveTopics: string[];
@@ -65,15 +77,36 @@ type NewsItem = {
   source: string;
   sentiment: "positive" | "negative" | "neutral";
   timestamp: number;
+  impact?: "high" | "medium" | "low";
 };
 
-// Align this with AIInsightResponse from gemini.ts service
 type AIInsight = {
   conclusion: string;
   bullishFactors: string[];
   bearishFactors: string[];
   recommendation: string;
   confidence: number;
+  riskLevel?: "low" | "medium" | "high";
+  priceTarget?: number;
+  timeHorizon?: string;
+};
+
+// Make sure AIInsightResponse has the same properties as AIInsight type
+interface AIInsightResponse {
+  conclusion: string;
+  bullishFactors: string[];
+  bearishFactors: string[];
+  recommendation: string;
+  confidence: number;
+  riskLevel?: "low" | "medium" | "high";
+  priceTarget?: number;
+  timeHorizon?: string;
+}
+
+type TimeframeOption = {
+  value: string;
+  label: string;
+  hours: number;
 };
 
 const AnalyticsDashboard: React.FC = () => {
@@ -81,451 +114,631 @@ const AnalyticsDashboard: React.FC = () => {
   const [timeframe, setTimeframe] = useState<string>("24h");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [chainData, setChainData] = useState<ChainData | null>(null);
-  const [sentimentData, setSentimentData] = useState<SentimentData | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [newsFilter, setNewsFilter] = useState<"all" | "positive" | "negative" | "neutral">("all");
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
+  
   const contextData = useData();
-  const { marketData, priceData, volumeData, sentimentData: contextSentimentData, aiInsights: contextAiInsights, loading } = contextData;
-  const [aiInsights, setAiInsights] = useState<AIInsight | null>(null);
+  const { 
+    marketData, 
+    priceData, 
+    volumeData, 
+    sentimentData: contextSentimentData, 
+    aiInsights: contextAiInsights, 
+    loading 
+  } = contextData;
+  
   const [news, setNews] = useState<NewsItem[]>([]);
   
   const walletAddress = useAddress();
   
   const tokens = ["ETH", "BTC", "AVAX", "SOL", "GLMR", "FTM"];
   
-  // This function is no longer needed as we're using context data
-  // It's replaced with an effect that updates local state when context data changes
-  
-  // This function is no longer needed as AI insights are now generated in the DataContext
-  // We're now using contextAiInsights from the DataContext
-  
-  // Fetch news for the selected token
-  const fetchNews = async (token: string) => {
-    try {
-      // In a real implementation, this would call Crypto News API or CoinDesk
-      // For demonstration, we're using mock data
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate more positive news for AVAX
-      const mockNews: NewsItem[] = token === "AVAX" ? [
-        {
-          title: "Avalanche Partners with Major Financial Institution to Enhance Blockchain Infrastructure",
-          url: "#",
-          source: "CoinDesk",
-          sentiment: "positive",
-          timestamp: Date.now() - 3600000 // 1 hour ago
-        },
-        {
-          title: "Developer Activity on Avalanche Network Reaches All-Time High",
-          url: "#",
-          source: "CryptoNews",
-          sentiment: "positive",
-          timestamp: Date.now() - 7200000 // 2 hours ago
-        },
-        {
-          title: "New DeFi Protocol on Avalanche Sees $100M TVL in First Week",
-          url: "#",
-          source: "DeFiPulse",
-          sentiment: "positive",
-          timestamp: Date.now() - 14400000 // 4 hours ago
-        },
-        {
-          title: "Regulatory Clarity Needed for Avalanche's Further Growth, Says Analyst",
-          url: "#",
-          source: "BlockchainInsider",
-          sentiment: "neutral",
-          timestamp: Date.now() - 28800000 // 8 hours ago
-        },
-        {
-          title: "Market Analysts Predict Strong Q4 for Avalanche Ecosystem",
-          url: "#",
-          source: "TokenInsight",
-          sentiment: "positive",
-          timestamp: Date.now() - 43200000 // 12 hours ago
-        }
-      ] : [
-        {
-          title: `${token} Price Analysis: Technical Indicators Suggest Potential Reversal`,
-          url: "#",
-          source: "CryptoAnalyst",
-          sentiment: Math.random() > 0.5 ? "positive" : "negative",
-          timestamp: Date.now() - Math.random() * 86400000 // random time within 24h
-        },
-        {
-          title: `New Development Update for ${token} Protocol Announced`,
-          url: "#",
-          source: "CoinTelegraph",
-          sentiment: "positive",
-          timestamp: Date.now() - Math.random() * 86400000
-        },
-        {
-          title: `${token} Faces Resistance at Key Level as Volume Decreases`,
-          url: "#",
-          source: "CoinDesk",
-          sentiment: "negative",
-          timestamp: Date.now() - Math.random() * 86400000
-        },
-        {
-          title: `Institutional Interest in ${token} Shows Mixed Signals`,
-          url: "#",
-          source: "TokenInsight",
-          sentiment: "neutral",
-          timestamp: Date.now() - Math.random() * 86400000
-        }
-      ];
-      
-      setNews(mockNews);
-    } catch (error) {
-      console.error("Error fetching news:", error);
-    }
-  };
-  
-  // Refresh all data
-  const refreshAllData = async () => {
+  const timeframeOptions: TimeframeOption[] = [
+    { value: "1h", label: "1H", hours: 1 },
+    { value: "24h", label: "24H", hours: 24 },
+    { value: "7d", label: "7D", hours: 168 },
+    { value: "30d", label: "30D", hours: 720 }
+  ];
+
+  // Enhanced mock news generator with more realistic data
+  const generateMockNews = useCallback((token: string): NewsItem[] => {
+    const baseNews = {
+      ETH: [
+        { title: "Ethereum Foundation Announces Major Protocol Upgrade", sentiment: "positive" as const, impact: "high" as const },
+        { title: "Layer 2 Solutions See Record Transaction Volume on Ethereum", sentiment: "positive" as const, impact: "medium" as const },
+        { title: "Institutional Adoption of Ethereum Staking Reaches New Milestone", sentiment: "positive" as const, impact: "high" as const },
+        { title: "Regulatory Concerns Surface Around Ethereum's Proof-of-Stake Model", sentiment: "negative" as const, impact: "medium" as const },
+      ],
+      BTC: [
+        { title: "Bitcoin ETF Sees Record Inflows This Quarter", sentiment: "positive" as const, impact: "high" as const },
+        { title: "Mining Difficulty Adjustment Impacts Network Security", sentiment: "neutral" as const, impact: "medium" as const },
+        { title: "Central Bank Digital Currencies Could Challenge Bitcoin Adoption", sentiment: "negative" as const, impact: "high" as const },
+        { title: "Lightning Network Reaches 5,000 Node Milestone", sentiment: "positive" as const, impact: "medium" as const },
+      ],
+      AVAX: [
+        { title: "Avalanche Partners with Major Financial Institution", sentiment: "positive" as const, impact: "high" as const },
+        { title: "Developer Activity on Avalanche Reaches All-Time High", sentiment: "positive" as const, impact: "medium" as const },
+        { title: "New DeFi Protocol on Avalanche Sees $100M TVL", sentiment: "positive" as const, impact: "high" as const },
+        { title: "Network Congestion Issues Reported During Peak Hours", sentiment: "negative" as const, impact: "low" as const },
+      ]
+    };
+
+    const tokenNews = baseNews[token as keyof typeof baseNews] || [
+      { title: `${token} Technical Analysis Shows Bullish Patterns`, sentiment: "positive" as const, impact: "medium" as const },
+      { title: `${token} Trading Volume Increases 40% Week-over-Week`, sentiment: "positive" as const, impact: "medium" as const },
+      { title: `Market Volatility Affects ${token} Price Action`, sentiment: "negative" as const, impact: "low" as const },
+    ];
+
+    const sources = ["CoinDesk", "CryptoNews", "BlockchainInsider", "TokenInsight", "DeFiPulse"];
+    
+    return tokenNews.map((newsItem, index) => ({
+      ...newsItem,
+      url: "#",
+      source: sources[index % sources.length],
+      timestamp: Date.now() - (index + 1) * 3600000 - Math.random() * 86400000,
+    }));
+  }, []);
+
+  // Memoized filtered news
+  const filteredNews = useMemo(() => {
+    if (newsFilter === "all") return news;
+    return news.filter(item => item.sentiment === newsFilter);
+  }, [news, newsFilter]);
+
+  // Enhanced refresh function with error handling
+  const refreshAllData = useCallback(async () => {
     setIsRefreshing(true);
+    setRefreshError(null);
+    
     try {
-      // Refresh the data context
+      // Refresh context data
       await contextData.refreshData();
       
-      // Also refresh local news data
-      await fetchNews(activeToken);
+      // Refresh local news data
+      const mockNews = generateMockNews(activeToken);
+      setNews(mockNews);
+      
+      setLastRefresh(new Date());
     } catch (error) {
       console.error("Error refreshing data:", error);
+      setRefreshError(error instanceof Error ? error.message : "Failed to refresh data");
     } finally {
       setIsRefreshing(false);
     }
-  };
-  
-  // Effect to update local state when context data or active token changes
+  }, [contextData, activeToken, generateMockNews]);
+
+  // Auto-refresh functionality
   useEffect(() => {
-    const loadData = async () => {
-      // Update loading state based on context
+    if (!autoRefresh) return;
+    
+    const interval = setInterval(() => {
+      refreshAllData();
+    }, 300000); // 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshAllData]);
+
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
       setIsLoading(loading || !marketData || !marketData[activeToken]);
       
-      // Fetch news for the selected token
-      await fetchNews(activeToken);
+      const mockNews = generateMockNews(activeToken);
+      setNews(mockNews);
     };
     
-    loadData();
-  }, [activeToken, marketData, loading]);
-  
-  // Effect to update local state with context data for the selected token
-  useEffect(() => {
-    if (!loading && marketData && marketData[activeToken] && contextSentimentData && contextSentimentData[activeToken]) {
-      // No need to manually fetch data - use the context data
-      console.log(`Using context data for ${activeToken}`);
-    }
-  }, [activeToken, marketData, contextSentimentData, loading]);
-  
-  // Format numbers with commas
+    loadInitialData();
+  }, [activeToken, marketData, loading, generateMockNews]);
+
+  // Utility functions
   const formatNumber = (num: number): string => {
-    return new Intl.NumberFormat('en-US').format(num);
+    return new Intl.NumberFormat('en-US', { 
+      notation: num >= 1000000 ? 'compact' : 'standard',
+      compactDisplay: 'short'
+    }).format(num);
   };
-  
-  // Format currency
+
   const formatCurrency = (num: number): string => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(num);
+    return new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: 'USD', 
+      notation: num >= 1000000 ? 'compact' : 'standard',
+      compactDisplay: 'short'
+    }).format(num);
   };
-  
-  // Get formatted time since timestamp
+
   const getTimeSince = (timestamp: number): string => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
     
-    if (seconds < 60) return `${seconds} seconds ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-    return `${Math.floor(seconds / 86400)} days ago`;
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
   };
+
+  const getRiskColor = (level?: string) => {
+    switch (level) {
+      case 'low': return 'text-emerald-400';
+      case 'medium': return 'text-yellow-400';
+      case 'high': return 'text-rose-400';
+      default: return 'text-primary';
+    }
+  };
+
+  const currentTokenData = marketData?.[activeToken];
+  const currentSentimentData = contextSentimentData?.[activeToken];
+  const currentAIInsights = contextAiInsights?.[activeToken];
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
+      {/* Enhanced Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-silver-bright">Analytics Dashboard</h1>
-          <p className="text-silver mt-2">Powered by AI and on-chain data analysis</p>
+          <motion.h1 
+            className="text-4xl font-bold gradient-text mb-2"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            Analytics Dashboard
+          </motion.h1>
+          <p className="text-silver flex items-center">
+            <Sparkles className="h-4 w-4 mr-2 text-primary" />
+            AI-powered blockchain analytics and insights
+          </p>
+          <div className="flex items-center mt-2 text-sm text-silver/70">
+            <Timer className="h-3 w-3 mr-1" />
+            Last updated: {lastRefresh.toLocaleTimeString()}
+          </div>
         </div>
         
-        <div className="flex mt-4 lg:mt-0">
+        <div className="flex flex-col sm:flex-row gap-2 mt-4 lg:mt-0">
+          <Button 
+            variant={autoRefresh ? "default" : "outline"}
+            size="sm"
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className="border-primary/30"
+          >
+            <Zap className={`mr-2 h-4 w-4 ${autoRefresh ? 'animate-pulse' : ''}`} />
+            Auto-refresh
+          </Button>
+          
           <Button 
             variant="outline" 
-            className="mr-2 border-primary/30" 
+            className="border-primary/30" 
             onClick={refreshAllData}
             disabled={isRefreshing}
           >
             <RefreshCcw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh Data
           </Button>
+          
           {!walletAddress && (
-            <Button variant="hero">Connect Wallet</Button>
+            <Button variant="hero">
+              <Users className="mr-2 h-4 w-4" />
+              Connect Wallet
+            </Button>
           )}
         </div>
       </div>
-      
-      {/* Token selector */}
-      <div className="flex overflow-x-auto pb-2 mb-6 no-scrollbar">
-        {tokens.map((token) => (
-          <Button
-            key={token}
-            variant={token === activeToken ? "default" : "outline"}
-            className={`mr-2 min-w-[80px] ${token === activeToken ? 'bg-primary text-black' : 'border-primary/30'}`}
-            onClick={() => setActiveToken(token)}
+
+      {/* Error Alert */}
+      <AnimatePresence>
+        {refreshError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mb-6"
           >
-            {token}
-          </Button>
+            <Alert className="border-rose-500/20 bg-rose-500/10">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {refreshError}
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Enhanced Token Selector */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {tokens.map((token) => (
+          <motion.div
+            key={token}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Button
+              variant={token === activeToken ? "default" : "outline"}
+              className={`min-w-[80px] ${
+                token === activeToken 
+                  ? 'bg-primary text-black shadow-lg shadow-primary/20' 
+                  : 'border-primary/30 hover:border-primary/60'
+              }`}
+              onClick={() => setActiveToken(token)}
+            >
+              {token}
+              {currentTokenData && token === activeToken && (
+                <Badge 
+                  className={`ml-2 ${
+                    (currentTokenData.price_change_percentage_24h || 0) >= 0 
+                      ? 'bg-emerald-500/20 text-emerald-300' 
+                      : 'bg-rose-500/20 text-rose-300'
+                  }`}
+                >
+                  {(currentTokenData.price_change_percentage_24h || 0) >= 0 ? '+' : ''}
+                  {(currentTokenData.price_change_percentage_24h || 0).toFixed(1)}%
+                </Badge>
+              )}
+            </Button>
+          </motion.div>
         ))}
       </div>
       
-      {/* Main content grid */}
+      {/* Main Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left column - Charts and stats */}
+        {/* Left Column - Charts and Analysis */}
         <div className="lg:col-span-8 space-y-6">
-          {/* Price chart card */}
-          <Card className="border-primary/20 bg-black/40">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle className="text-silver-bright text-xl">{activeToken} Price</CardTitle>
+          {/* Enhanced Price Chart */}
+          <Card className="border-primary/20 bg-black/40 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div className="space-y-1">
+                <CardTitle className="text-silver-bright text-2xl flex items-center">
+                  <DollarSign className="h-6 w-6 mr-2 text-primary" />
+                  {activeToken} Price
+                </CardTitle>
                 <CardDescription>
-                  {loading || !marketData || !marketData[activeToken] ? (
-                    <Skeleton className="h-6 w-32 bg-primary/10" />
+                  {loading || !currentTokenData ? (
+                    <Skeleton className="h-8 w-48 bg-primary/10" />
                   ) : (
-                    <>
-                      <span className="text-2xl font-bold text-silver-bright">${marketData[activeToken]?.current_price.toLocaleString()}</span>
+                    <div className="flex items-center space-x-4">
+                      <span className="text-3xl font-bold text-silver-bright">
+                        {formatCurrency(currentTokenData.current_price)}
+                      </span>
                       <Badge 
-                        className={`ml-2 ${marketData[activeToken]?.price_change_percentage_24h >= 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}
+                        className={`${
+                          (currentTokenData.price_change_percentage_24h || 0) >= 0 
+                            ? 'bg-emerald-500/20 text-emerald-300' 
+                            : 'bg-rose-500/20 text-rose-300'
+                        }`}
                       >
-                        {marketData[activeToken]?.price_change_percentage_24h >= 0 ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
-                        {Math.abs(marketData[activeToken]?.price_change_percentage_24h || 0).toFixed(2)}%
+                        {(currentTokenData.price_change_percentage_24h || 0) >= 0 
+                          ? <ArrowUpRight className="h-4 w-4 mr-1" /> 
+                          : <ArrowDownRight className="h-4 w-4 mr-1" />
+                        }
+                        {Math.abs(currentTokenData.price_change_percentage_24h || 0).toFixed(2)}%
                       </Badge>
-                    </>
+                      <span className="text-sm text-silver/70">
+                        24h: {formatCurrency(Math.abs((currentTokenData.price_change_24h || 0)))}
+                      </span>
+                    </div>
                   )}
                 </CardDescription>
               </div>
               
-              <Tabs defaultValue="24h" className="w-[200px]">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="1h">1h</TabsTrigger>
-                  <TabsTrigger value="24h">24h</TabsTrigger>
-                  <TabsTrigger value="7d">7d</TabsTrigger>
-                  <TabsTrigger value="30d">30d</TabsTrigger>
+              <Tabs value={timeframe} onValueChange={setTimeframe}>
+                <TabsList className="grid grid-cols-4 bg-black/60">
+                  {timeframeOptions.map(option => (
+                    <TabsTrigger key={option.value} value={option.value}>
+                      {option.label}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
               </Tabs>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Skeleton className="h-[300px] w-full bg-primary/10" />
+                <Skeleton className="h-[400px] w-full bg-primary/10 rounded-lg" />
               ) : (
-                <div className="h-[300px]">
-                  <PriceChart token={activeToken} />
+                <div className="h-[400px] relative">
+                  <PriceChart token={activeToken} timeframe={timeframe} />
                 </div>
               )}
             </CardContent>
           </Card>
           
-          {/* Volume and Active Addresses */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Volume chart */}
+          {/* Enhanced Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Volume Chart */}
             <Card className="border-primary/20 bg-black/40">
-              <CardHeader>
-                <CardTitle className="text-silver-bright">Trading Volume</CardTitle>
-                {loading || !marketData || !marketData[activeToken] ? (
-                  <Skeleton className="h-5 w-32 bg-primary/10" />
+              <CardHeader className="pb-4">
+                <CardTitle className="text-silver-bright flex items-center text-lg">
+                  <BarChart3 className="h-5 w-5 mr-2 text-primary" />
+                  Volume (24h)
+                </CardTitle>
+                {loading || !currentTokenData ? (
+                  <Skeleton className="h-6 w-32 bg-primary/10" />
                 ) : (
-                  <CardDescription className="flex items-center">
-                    <span className="text-lg font-semibold">${(marketData[activeToken]?.total_volume / 1000000).toFixed(2)}M</span>
+                  <CardDescription className="flex items-center space-x-2">
+                    <span className="text-xl font-bold text-silver-bright">
+                      {formatCurrency(currentTokenData.total_volume)}
+                    </span>
                     <Badge 
-                      className={`ml-2 ${(marketData[activeToken]?.market_cap_change_percentage_24h || 0) >= 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}
+                      className={`${
+                        (currentTokenData.market_cap_change_percentage_24h || 0) >= 0 
+                          ? 'bg-emerald-500/20 text-emerald-300' 
+                          : 'bg-rose-500/20 text-rose-300'
+                      }`}
                     >
-                      {(marketData[activeToken]?.market_cap_change_percentage_24h || 0) >= 0 ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
-                      {Math.abs(marketData[activeToken]?.market_cap_change_percentage_24h || 0).toFixed(2)}%
+                      {(currentTokenData.market_cap_change_percentage_24h || 0) >= 0 ? '+' : ''}
+                      {(currentTokenData.market_cap_change_percentage_24h || 0).toFixed(1)}%
                     </Badge>
                   </CardDescription>
                 )}
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <Skeleton className="h-[150px] w-full bg-primary/10" />
+                  <Skeleton className="h-[120px] w-full bg-primary/10" />
                 ) : (
-                  <div className="h-[150px]">
+                  <div className="h-[120px]">
                     <VolumeChart token={activeToken} />
                   </div>
                 )}
               </CardContent>
             </Card>
             
-            {/* Market Stats */}
+            {/* Market Cap */}
             <Card className="border-primary/20 bg-black/40">
-              <CardHeader>
-                <CardTitle className="text-silver-bright">Market Stats</CardTitle>
-                {loading || !marketData || !marketData[activeToken] ? (
-                  <Skeleton className="h-5 w-32 bg-primary/10" />
+              <CardHeader className="pb-4">
+                <CardTitle className="text-silver-bright flex items-center text-lg">
+                  <PieChart className="h-5 w-5 mr-2 text-primary" />
+                  Market Cap
+                </CardTitle>
+                {loading || !currentTokenData ? (
+                  <Skeleton className="h-6 w-32 bg-primary/10" />
                 ) : (
-                  <CardDescription className="flex items-center">
-                    <span className="text-lg font-semibold">Rank #{marketData[activeToken]?.market_cap_rank || '?'}</span>
-                    <Badge 
-                      variant="outline" 
-                      className="ml-2 border-primary/30"
-                    >
-                      {marketData[activeToken]?.symbol?.toUpperCase() || activeToken}
-                    </Badge>
+                  <CardDescription>
+                    <span className="text-xl font-bold text-silver-bright">
+                      {formatCurrency(currentTokenData.market_cap)}
+                    </span>
+                    <div className="text-sm text-silver/70 mt-1">
+                      Rank #{currentTokenData.market_cap_rank || '?'}
+                    </div>
                   </CardDescription>
                 )}
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <Skeleton className="h-[150px] w-full bg-primary/10" />
+                {isLoading ? (
+                  <Skeleton className="h-[120px] w-full bg-primary/10" />
                 ) : (
-                  <div className="h-[150px]">
+                  <div className="h-[120px]">
                     <MarketStats token={activeToken} />
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Additional Stats */}
+            <Card className="border-primary/20 bg-black/40">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-silver-bright flex items-center text-lg">
+                  <Globe className="h-5 w-5 mr-2 text-primary" />
+                  Additional Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {loading || !currentTokenData ? (
+                  <>
+                    <Skeleton className="h-4 w-full bg-primary/10" />
+                    <Skeleton className="h-4 w-full bg-primary/10" />
+                    <Skeleton className="h-4 w-full bg-primary/10" />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-silver/70">24h High</span>
+                      <span className="text-sm font-medium">{formatCurrency(currentTokenData.high_24h || 0)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-silver/70">24h Low</span>
+                      <span className="text-sm font-medium">{formatCurrency(currentTokenData.low_24h || 0)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-silver/70">Supply</span>
+                      <span className="text-sm font-medium">{formatNumber(currentTokenData.circulating_supply || 0)}</span>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </div>
           
-          {/* News feed */}
+          {/* Enhanced News Section */}
           <Card className="border-primary/20 bg-black/40">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-silver-bright flex items-center">
                 <MessageSquare className="h-5 w-5 mr-2" />
-                Latest {activeToken} News & Sentiment
+                Latest {activeToken} News & Analysis
               </CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  variant={newsFilter === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNewsFilter("all")}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={newsFilter === "positive" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNewsFilter("positive")}
+                  className="text-emerald-400 hover:text-emerald-300"
+                >
+                  Positive
+                </Button>
+                <Button
+                  variant={newsFilter === "negative" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNewsFilter("negative")}
+                  className="text-rose-400 hover:text-rose-300"
+                >
+                  Negative
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <>
+                <div className="space-y-4">
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="mb-4">
-                      <Skeleton className="h-6 w-full bg-primary/10 mb-2" />
+                    <div key={i} className="space-y-2">
+                      <Skeleton className="h-5 w-full bg-primary/10" />
                       <Skeleton className="h-4 w-3/4 bg-primary/10" />
                     </div>
                   ))}
-                </>
+                </div>
               ) : (
                 <div className="space-y-4">
-                  {news.map((item, index) => (
-                    <div key={index} className="border-b border-primary/10 pb-3 last:border-b-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <h4 className="text-silver-bright font-medium">{item.title}</h4>
-                        <Badge 
-                          className={
-                            item.sentiment === 'positive' ? 'bg-emerald-500/20 text-emerald-300' : 
-                            item.sentiment === 'negative' ? 'bg-rose-500/20 text-rose-300' : 
-                            'bg-primary/20 text-primary'
-                          }
-                        >
-                          {item.sentiment}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>{item.source}</span>
-                        <span>{getTimeSince(item.timestamp)}</span>
-                      </div>
-                    </div>
-                  ))}
+                  <AnimatePresence>
+                    {filteredNews.map((item, index) => (
+                      <motion.div 
+                        key={`${item.title}-${index}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="border-b border-primary/10 pb-4 last:border-b-0 hover:bg-primary/5 p-2 rounded-lg transition-colors"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-silver-bright font-medium leading-snug">{item.title}</h4>
+                          <div className="flex gap-2">
+                            {item.impact && (
+                              <Badge variant="outline" className="text-xs border-primary/30">
+                                {item.impact} impact
+                              </Badge>
+                            )}
+                            <Badge 
+                              className={`text-xs ${
+                                item.sentiment === 'positive' ? 'bg-emerald-500/20 text-emerald-300' : 
+                                item.sentiment === 'negative' ? 'bg-rose-500/20 text-rose-300' : 
+                                'bg-primary/20 text-primary'
+                              }`}
+                            >
+                              {item.sentiment}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-sm text-silver/70">
+                          <span className="flex items-center">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            {item.source}
+                          </span>
+                          <span>{getTimeSince(item.timestamp)}</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               )}
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full border-primary/30">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View Full News Feed
-              </Button>
-            </CardFooter>
           </Card>
         </div>
         
-        {/* Right column - Sentiment and AI insights */}
+        {/* Right Column - Sentiment and AI */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Sentiment gauge */}
+          {/* Enhanced Sentiment Gauge */}
           <Card className="border-primary/20 bg-black/40">
             <CardHeader>
-              <CardTitle className="text-silver-bright">Overall Sentiment</CardTitle>
-              <CardDescription>Combined social & news sentiment</CardDescription>
+              <CardTitle className="text-silver-bright flex items-center">
+                <Activity className="h-5 w-5 mr-2 text-primary" />
+                Market Sentiment
+              </CardTitle>
+              <CardDescription>Real-time social and news sentiment analysis</CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
-              {loading || !contextSentimentData || !contextSentimentData[activeToken] ? (
+              {loading || !currentSentimentData ? (
                 <Skeleton className="h-[200px] w-[200px] rounded-full bg-primary/10" />
               ) : (
                 <div className="h-[200px]">
-                  <SentimentGauge sentiment={contextSentimentData[activeToken]?.overall || 0} />
+                  <SentimentGauge sentiment={currentSentimentData.overall || 0} />
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between">
+            <CardFooter className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Social</p>
-                <p className={`font-medium ${(contextSentimentData && contextSentimentData[activeToken]?.social || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {contextSentimentData && contextSentimentData[activeToken]?.social ? Math.abs(contextSentimentData[activeToken].social).toFixed(1) : 0}%
+                <p className="text-sm text-silver/70">Social</p>
+                <p className={`font-bold ${(currentSentimentData?.social || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {currentSentimentData?.social ? Math.abs(currentSentimentData.social).toFixed(0) : 0}
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Twitter</p>
-                <p className={`font-medium ${(contextSentimentData && contextSentimentData[activeToken]?.social || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {contextSentimentData && contextSentimentData[activeToken]?.social ? Math.abs(contextSentimentData[activeToken].social * 0.8).toFixed(1) : 0}%
+                <p className="text-sm text-silver/70">News</p>
+                <p className={`font-bold ${(currentSentimentData?.news || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {currentSentimentData?.news ? Math.abs(currentSentimentData.news).toFixed(0) : 0}
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">News</p>
-                <p className={`font-medium ${(contextSentimentData && contextSentimentData[activeToken]?.news || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {contextSentimentData && contextSentimentData[activeToken]?.news ? Math.abs(contextSentimentData[activeToken].news).toFixed(1) : 0}%
+                <p className="text-sm text-silver/70">Overall</p>
+                <p className={`font-bold ${(currentSentimentData?.overall || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {currentSentimentData?.overall ? Math.abs(currentSentimentData.overall).toFixed(0) : 0}
                 </p>
               </div>
             </CardFooter>
           </Card>
           
-          {/* Topics */}
+          {/* Enhanced Topics Grid */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Positive topics */}
             <Card className="border-primary/20 bg-black/40">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-silver-bright text-sm flex items-center">
                   <TrendingUp className="h-4 w-4 mr-2 text-emerald-400" />
-                  Bullish Topics
+                  Bullish Signals
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {loading || !contextSentimentData || !contextSentimentData[activeToken] ? (
-                  <>
+                {loading || !currentSentimentData ? (
+                  <div className="space-y-2">
                     {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-4 w-full bg-primary/10 mb-2" />
+                      <Skeleton key={i} className="h-3 w-full bg-primary/10" />
                     ))}
-                  </>
+                  </div>
                 ) : (
                   <ul className="text-xs space-y-1">
-                    {contextSentimentData[activeToken]?.positiveTopics.map((topic, i) => (
-                      <li key={i} className="flex items-center">
+                    {currentSentimentData.positiveTopics.slice(0, 4).map((topic, i) => (
+                      <motion.li 
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="flex items-center"
+                      >
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 mr-2"></span>
                         {topic}
-                      </li>
+                      </motion.li>
                     ))}
                   </ul>
                 )}
               </CardContent>
             </Card>
             
-            {/* Negative topics */}
+            {/* Bearish Signals */}
             <Card className="border-primary/20 bg-black/40">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-silver-bright text-sm flex items-center">
                   <TrendingDown className="h-4 w-4 mr-2 text-rose-400" />
-                  Bearish Topics
+                  Bearish Signals
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {loading || !contextSentimentData || !contextSentimentData[activeToken] ? (
-                  <>
+                {loading || !currentSentimentData ? (
+                  <div className="space-y-2">
                     {[...Array(3)].map((_, i) => (
-                      <Skeleton key={i} className="h-4 w-full bg-primary/10 mb-2" />
+                      <Skeleton key={i} className="h-3 w-full bg-primary/10" />
                     ))}
-                  </>
+                  </div>
                 ) : (
                   <ul className="text-xs space-y-1">
-                    {contextSentimentData[activeToken]?.negativeTopics.map((topic, i) => (
-                      <li key={i} className="flex items-center">
+                    {currentSentimentData.negativeTopics.slice(0, 4).map((topic, i) => (
+                      <motion.li 
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="flex items-center"
+                      >
                         <span className="h-1.5 w-1.5 rounded-full bg-rose-400 mr-2"></span>
                         {topic}
-                      </li>
+                      </motion.li>
                     ))}
                   </ul>
                 )}
@@ -533,84 +746,203 @@ const AnalyticsDashboard: React.FC = () => {
             </Card>
           </div>
           
-          {/* AI Insights */}
-          <Card className="border-primary/20 bg-black/40">
+          {/* Enhanced AI Insights */}
+          <Card className="border-primary/20 bg-black/40 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-silver-bright flex items-center">
-                <Activity className="h-5 w-5 mr-2 text-primary" />
-                AI Analysis
+                <Sparkles className="h-5 w-5 mr-2 text-primary" />
+                AI Market Analysis
               </CardTitle>
-              {contextAiInsights && contextAiInsights[activeToken] && (
+              {currentAIInsights && (
                 <CardDescription className="flex justify-between items-center">
-                  <span>Generated recently</span>
-                  <Badge className="bg-primary/20 text-primary">
-                    {contextAiInsights[activeToken]?.confidence.toFixed(0)}% Confidence
-                  </Badge>
+                  <span className="flex items-center text-sm">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Updated {getTimeSince(Date.now() - 300000)}
+                  </span>
+                  <div className="flex gap-2">
+                    <Badge className="bg-primary/20 text-primary">
+                      {currentAIInsights.confidence.toFixed(0)}% Confidence
+                    </Badge>
+                    {currentAIInsights.riskLevel && (
+                      <Badge 
+                        className={`${
+                          currentAIInsights.riskLevel === 'low' ? 'bg-emerald-500/20 text-emerald-300' :
+                          currentAIInsights.riskLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                          'bg-rose-500/20 text-rose-300'
+                        }`}
+                      >
+                        {currentAIInsights.riskLevel} risk
+                      </Badge>
+                    )}
+                  </div>
                 </CardDescription>
               )}
             </CardHeader>
             <CardContent>
-              {loading || !contextAiInsights || !contextAiInsights[activeToken] ? (
-                <>
-                  <Skeleton className="h-5 w-full bg-primary/10 mb-2" />
-                  <Skeleton className="h-5 w-full bg-primary/10 mb-2" />
-                  <Skeleton className="h-5 w-full bg-primary/10 mb-2" />
-                  <Skeleton className="h-5 w-3/4 bg-primary/10 mb-4" />
-                  <Skeleton className="h-4 w-full bg-primary/10 mb-2" />
-                  <Skeleton className="h-4 w-full bg-primary/10 mb-2" />
-                </>
+              {loading || !currentAIInsights ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-5 w-full bg-primary/10" />
+                  <Skeleton className="h-5 w-full bg-primary/10" />
+                  <Skeleton className="h-5 w-3/4 bg-primary/10" />
+                  <div className="space-y-2 mt-4">
+                    <Skeleton className="h-4 w-full bg-primary/10" />
+                    <Skeleton className="h-4 w-full bg-primary/10" />
+                    <Skeleton className="h-4 w-2/3 bg-primary/10" />
+                  </div>
+                </div>
               ) : (
                 <>
-                  <p className="text-silver-bright mb-4">{contextAiInsights[activeToken]?.conclusion}</p>
+                  <div className="mb-4">
+                    <p className="text-silver-bright leading-relaxed">{currentAIInsights.conclusion}</p>
+                    {currentAIInsights.priceTarget && (
+                      <div className="mt-3 p-3 bg-primary/10 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-silver/70">Price Target</span>
+                          <span className="font-bold text-primary">{formatCurrency(currentAIInsights.priceTarget)}</span>
+                        </div>
+                        {currentAIInsights.timeHorizon && (
+                          <div className="text-xs text-silver/60 mt-1">
+                            Timeframe: {currentAIInsights.timeHorizon}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   
-                  <h4 className="font-medium text-sm text-silver-bright mb-2">Key Factors</h4>
-                  <div className="space-y-3 mb-4">
+                  <div className="space-y-4">
                     <div>
-                      <h5 className="text-xs text-emerald-400 flex items-center">
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                        Bullish
+                      <h5 className="text-sm text-emerald-400 flex items-center mb-2">
+                        <TrendingUp className="h-4 w-4 mr-1" />
+                        Bullish Factors
                       </h5>
-                      <ul className="text-xs space-y-1 mt-1">
-                        {contextAiInsights[activeToken]?.bullishFactors.map((factor, i) => (
-                          <li key={i} className="flex items-center">
-                            <span className="h-1 w-1 rounded-full bg-emerald-400 mr-2"></span>
-                            {factor}
-                          </li>
+                      <ul className="space-y-1">
+                        {currentAIInsights.bullishFactors.map((factor, i) => (
+                          <motion.li 
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            className="flex items-start text-xs"
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 mr-2 mt-1.5 flex-shrink-0"></span>
+                            <span className="leading-relaxed">{factor}</span>
+                          </motion.li>
                         ))}
                       </ul>
                     </div>
                     
                     <div>
-                      <h5 className="text-xs text-rose-400 flex items-center">
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                        Bearish
+                      <h5 className="text-sm text-rose-400 flex items-center mb-2">
+                        <TrendingDown className="h-4 w-4 mr-1" />
+                        Bearish Factors
                       </h5>
-                      <ul className="text-xs space-y-1 mt-1">
-                        {contextAiInsights[activeToken]?.bearishFactors.map((factor, i) => (
-                          <li key={i} className="flex items-center">
-                            <span className="h-1 w-1 rounded-full bg-rose-400 mr-2"></span>
-                            {factor}
-                          </li>
+                      <ul className="space-y-1">
+                        {currentAIInsights.bearishFactors.map((factor, i) => (
+                          <motion.li 
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            className="flex items-start text-xs"
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-400 mr-2 mt-1.5 flex-shrink-0"></span>
+                            <span className="leading-relaxed">{factor}</span>
+                          </motion.li>
                         ))}
                       </ul>
                     </div>
                   </div>
                   
-                  <h4 className="font-medium text-sm text-silver-bright mb-1">AI Recommendation</h4>
-                  <p className="text-xs">{contextAiInsights[activeToken]?.recommendation}</p>
+                  <div className="mt-4 p-3 bg-black/30 rounded-lg">
+                    <h5 className="text-sm text-silver-bright mb-2 flex items-center">
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      AI Recommendation
+                    </h5>
+                    <p className="text-xs leading-relaxed text-silver/90">{currentAIInsights.recommendation}</p>
+                  </div>
                 </>
               )}
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex gap-2">
               <Button 
                 variant="outline" 
-                className="w-full border-primary/30" 
+                className="flex-1 border-primary/30 hover:bg-primary/10" 
                 onClick={refreshAllData}
                 disabled={isRefreshing}
               >
-                {isRefreshing ? 'Generating...' : 'Generate New Analysis'}
+                <RefreshCcw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Analyzing...' : 'Refresh Analysis'}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="border-primary/30"
+                disabled
+              >
+                <ExternalLink className="h-4 w-4" />
               </Button>
             </CardFooter>
+          </Card>
+
+          {/* Performance Summary */}
+          <Card className="border-primary/20 bg-black/40">
+            <CardHeader>
+              <CardTitle className="text-silver-bright flex items-center text-lg">
+                <LineChart className="h-5 w-5 mr-2 text-primary" />
+                Performance Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading || !currentTokenData ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full bg-primary/10" />
+                  <Skeleton className="h-4 w-full bg-primary/10" />
+                  <Skeleton className="h-4 w-3/4 bg-primary/10" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-silver/70">24h Performance</span>
+                    <div className="flex items-center">
+                      {(currentTokenData.price_change_percentage_24h || 0) >= 0 ? 
+                        <ArrowUpRight className="h-4 w-4 text-emerald-400 mr-1" /> : 
+                        <ArrowDownRight className="h-4 w-4 text-rose-400 mr-1" />
+                      }
+                      <span className={`font-medium ${
+                        (currentTokenData.price_change_percentage_24h || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                      }`}>
+                        {(currentTokenData.price_change_percentage_24h || 0).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-silver/70">Volume Trend</span>
+                    <div className="flex items-center">
+                      <BarChart3 className="h-4 w-4 text-primary mr-1" />
+                      <span className="font-medium text-primary">
+                        {formatCurrency(currentTokenData.total_volume)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-silver/70">Market Sentiment</span>
+                    <div className="flex items-center">
+                      {(currentSentimentData?.overall || 0) > 0 ? 
+                        <TrendingUp className="h-4 w-4 text-emerald-400 mr-1" /> : 
+                        <TrendingDown className="h-4 w-4 text-rose-400 mr-1" />
+                      }
+                      <span className={`font-medium ${
+                        (currentSentimentData?.overall || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'
+                      }`}>
+                        {(currentSentimentData?.overall || 0) > 0 ? 'Bullish' : 'Bearish'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
           </Card>
         </div>
       </div>
