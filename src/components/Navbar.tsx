@@ -11,7 +11,6 @@ const Navbar = () => {
   const navItems = [
     { name: "Analytics Hub", href: "#analytics" },
     { name: "NeuroTrader", href: "#neurotrader" },
-    { name: "Multi-Chain", href: "#chains" },
     { name: "AI Agent", href: "/agent", isPageLink: true, icon: Bot },
     { name: "Docs", href: "#docs" }
   ];
