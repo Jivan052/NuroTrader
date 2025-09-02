@@ -1,5 +1,4 @@
 import { Agentkit, AgentkitToolkit } from "@0xgasless/agentkit";
-// import { Agentkit, AgentkitToolkit } from "@0xgas/agentkit";
 import { HumanMessage } from "@langchain/core/messages";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { MemorySaver } from "@langchain/langgraph";
@@ -163,7 +162,6 @@ async function runChatMode(agent: any, config: any) {
 
       for await (const chunk of stream) {
         if ("agent" in chunk) {
-          console.log(chunk.agent.messages[0].content);
         } else if ("tools" in chunk) {
           console.log(chunk.tools.messages[0].content);
         }
@@ -250,3 +248,6 @@ if (require.main === module) {
     process.exit(1);
   });
 }
+
+// Export functions for use in the backend API
+export { initializeAgent, runSinglePrompt, runChatMode };

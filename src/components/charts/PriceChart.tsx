@@ -4,6 +4,7 @@ import { useData } from '../../context/DataContext';
 
 type PriceChartProps = {
   token: string;
+  timeframe?: string;
 };
 
 type ChartDataPoint = {
@@ -19,7 +20,8 @@ const formatYAxis = (value: number) => {
   return `$${value}`;
 };
 
-export const PriceChart: React.FC<PriceChartProps> = ({ token }) => {
+export const PriceChart: React.FC<PriceChartProps> = ({ token, timeframe = '24h' }) => {
+  console.log(`Rendering price chart for ${token} with timeframe ${timeframe}`);
   const { priceData, loading } = useData();
   
   // Show loading state if no data is available

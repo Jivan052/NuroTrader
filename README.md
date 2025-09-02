@@ -1,80 +1,40 @@
 
-# NuroTrader AI Trading Platform
+# NuroTrader Analytics Platform
 
-NuroTrader is an AI-powered cryptocurrency trading platform with analytics, market insights, and an interactive AI agent.
+NuroTrader is an AI-powered cryptocurrency analytics platform with comprehensive market insights and an integrated AI agent.
 
 ## Features
 
-- **Interactive AI Agent**: Chat with our AI trading assistant with persistent conversations
-- **Analytics Dashboard**: View comprehensive market analytics
-- **Multi-Chain Support**: Compatible with Ethereum, Solana, Avalanche, and Fantom
-- **Real-Time Data**: Live market data and trading insights
-- **Persistent Chat Sessions**: User conversations stored in SQLite database
-- **AgentKit Integration**: Backend integration with AgentKit for intelligent responses
+- **Analytics Dashboard**: View comprehensive market analytics with AI-powered insights
+- **Embedded AI Agent**: Chat with our blockchain AI assistant directly from the analytics dashboard
+- **Multi-Chain Support**: Compatible with major blockchains including Avalanche
+- **Real-Time Data**: Live market data, sentiment analysis, and trading insights
+- **AgentKit Integration**: Seamless integration with AgentKit for blockchain interactions
 
 ## Setup and Installation
 
-### Frontend Setup
-
 1. Install dependencies:
    ```bash
-   npm install
+   bun install
    ```
 
-2. Run the frontend development server:
-   ```bash
-   npm run dev
+2. Make sure AgentKit environment variables are set in `backend/agentkit/.env`
+
+3. To run both the frontend and backend simultaneously, use the provided PowerShell script:
+   ```powershell
+   .\start-agent-app.ps1
    ```
 
-### Backend Setup
+This will start both the frontend development server and the agent backend server, and provide URLs to access them.
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+The frontend will be available at http://localhost:5173
 
-2. Install dependencies:
-   ```bash
-   npm install express cors sqlite3 dotenv morgan express-rate-limit ts-node typescript uuid
-   ```
+## How to Use
 
-3. Initialize the SQLite database:
-   ```bash
-   node setup-db.js
-   ```
-
-4. Create a `.env` file based on `.env.example` (optional):
-   ```bash
-   copy .env.example .env
-   ```
-
-5. Start the backend server:
-   ```bash
-   node server.js
-   ```
-
-### Running Both Frontend and Backend
-
-To run both servers simultaneously (requires concurrently package):
-
-```bash
-npm install -g concurrently  # Install globally if needed
-npm run dev:all
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Open the application at http://localhost:5173
+2. Navigate to the Analytics Dashboard
+3. Use the chat widget in the bottom-right corner to interact with the AI agent
+4. Ask questions about market data, trading recommendations, or blockchain information
 
 ## Technologies Used
 
@@ -93,16 +53,20 @@ npm run dev:all
 - ts-node (for running TypeScript files)
 - AgentKit integration
 
-## Backend Architecture
+## Application Architecture
 
-The backend is built with a modular architecture:
+The application uses a simplified architecture:
 
-1. **Express Server**: Handles HTTP requests and responses
-2. **SQLite Database**: Stores chat sessions and message history
-3. **Service Layer**: Interfaces with the AgentKit module
-4. **API Routes**: RESTful endpoints for the frontend
-5. **Rate Limiting**: Prevents API abuse
-6. **Error Handling**: Graceful error recovery
+1. **Frontend**: React-based UI with Tailwind CSS styling
+   - Analytics Dashboard: Displays market data, sentiment analysis, and price charts
+   - AI Agent Widget: Chat interface that appears in the bottom corner of the dashboard
 
-All conversations with the AI agent are persisted in the database, allowing users to continue their sessions across visits.
+2. **Backend**: Express server for handling agent interactions
+   - Simple Express server: Handles API requests from the frontend
+   - AgentKit Integration: Connects to the AgentKit module for blockchain interactions
+   - In-memory storage: Stores chat sessions during runtime
+
+3. **Integration**: The agent widget in the dashboard directly communicates with the backend server
+   - Real-time responses: Get immediate responses from the AI agent
+   - Blockchain capabilities: Leverage AgentKit's blockchain interaction capabilities
 

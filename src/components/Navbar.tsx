@@ -8,10 +8,16 @@ import { Link } from "react-router-dom";
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const navItems = [
-    { name: "Analytics Hub", href: "#analytics" },
-    { name: "NeuroTrader", href: "#neurotrader" },
-    { name: "AI Agent", href: "/agent", isPageLink: true, icon: Bot },
+  // Define interface for nav items
+  interface NavItem {
+    name: string;
+    href: string;
+    isPageLink?: boolean;
+    icon?: React.ElementType;
+  }
+
+  const navItems: NavItem[] = [
+    { name: "Analytics", href: "/analytics", isPageLink: true },
     { name: "Docs", href: "#docs" }
   ];
 
@@ -32,7 +38,7 @@ const Navbar = () => {
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
               <span className="text-black font-bold text-sm">N</span>
             </div>
-            <span className="text-xl font-bold gradient-text">NeuroTrader</span>
+            <span className="text-xl font-bold gradient-text">NuroTrader</span>
           </motion.div>
 
           {/* Desktop Navigation */}

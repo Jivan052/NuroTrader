@@ -11,7 +11,9 @@
   "license": "MIT",
   "scripts": {
     "lint": "biome lint --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "start": "bun run server.js",
+    "agent": "bun run index.ts"
   },
   "dependencies": {
     "@0xgasless/agentkit": "^0.0.14",
@@ -20,7 +22,10 @@
     "@langchain/langgraph": "^0.2.21",
     "@langchain/openai": "^0.3.14",
     "axios": "^1.7.9",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "express": "^4.18.2",
     "merkletreejs": "^0.4.1",
     "tslib": "^2.8.1",
     "viem": "^2.22.17",

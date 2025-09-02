@@ -9,8 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "backend": "cd backend && npm run dev",
-    "dev:all": "concurrently \"npm run dev\" \"npm run backend\""
+    "agent": "cd backend && node agent-server.cjs"
   },
   "dependencies": {
     "@0xgasless/agentkit": "^0.0.16",

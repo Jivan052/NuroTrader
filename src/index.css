@@ -151,4 +151,131 @@
     white-space: nowrap;
     animation: typing 2s steps(40, end);
   }
+  
+  /* Fullscreen mode for chat widget */
+  .chat-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    z-index: 9999 !important;
+    border-radius: 0 !important;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* Keyboard shortcuts for fullscreen */
+  .chat-fullscreen-keyhandler:focus {
+    outline: none;
+  }
+  
+  /* Markdown content styling for chat widget */
+  .markdown-content {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  
+  .markdown-content p {
+    margin-bottom: 0.75rem;
+  }
+  
+  .markdown-content p:last-child {
+    margin-bottom: 0;
+  }
+  
+  .markdown-content code {
+    background-color: hsl(var(--background) / 0.5);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.85em;
+  }
+  
+  .markdown-content pre {
+    background-color: hsl(var(--background) / 0.7);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+    overflow-x: auto;
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+  
+  .markdown-content pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+    display: block;
+    color: hsl(var(--silver-bright));
+  }
+  
+  .markdown-content ul, 
+  .markdown-content ol {
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+  }
+  
+  .markdown-content ul {
+    list-style-type: disc;
+  }
+  
+  .markdown-content ol {
+    list-style-type: decimal;
+  }
+  
+  .markdown-content li {
+    margin-bottom: 0.25rem;
+  }
+  
+  .markdown-content h1, 
+  .markdown-content h2, 
+  .markdown-content h3, 
+  .markdown-content h4 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  
+  .markdown-content h1 {
+    font-size: 1.5rem;
+  }
+  
+  .markdown-content h2 {
+    font-size: 1.25rem;
+  }
+  
+  .markdown-content h3 {
+    font-size: 1.1rem;
+  }
+  
+  .markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    font-size: 0.85em;
+  }
+  
+  .markdown-content th {
+    background-color: hsl(var(--muted));
+    padding: 0.5rem;
+    text-align: left;
+    border: 1px solid hsl(var(--border));
+  }
+  
+  .markdown-content td {
+    padding: 0.5rem;
+    border: 1px solid hsl(var(--border));
+  }
+  
+  .markdown-content blockquote {
+    border-left: 3px solid hsl(var(--primary) / 0.3);
+    padding-left: 0.75rem;
+    margin: 0.5rem 0;
+    font-style: italic;
+    color: hsl(var(--muted-foreground));
+  }
 }

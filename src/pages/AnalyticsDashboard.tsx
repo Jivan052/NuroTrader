@@ -31,13 +31,10 @@ import {
   Zap
 } from "lucide-react";
 import { 
-  fetchSantimentCompleteData,
-  generateAIInsights,
   ChainData as SantimentChainData,
   SentimentData as SantimentSentimentData,
-  AIInsightRequest,
-  AIInsightResponse
 } from "../services/santiment";
+import { AIInsightRequest, AIInsightResponse } from "../services/gemini";
 import { useData } from "../context/DataContext";
 
 // Import chart components
@@ -45,6 +42,9 @@ import { PriceChart } from "../components/charts/PriceChart";
 import { SentimentGauge } from "../components/charts/SentimentGauge";
 import { VolumeChart } from "../components/charts/VolumeChart";
 import { MarketStats } from "../components/charts/MarketStats";
+
+// Import AgentChatWidget
+import AgentChatWidget from "../components/AgentChatWidget";
 
 // Enhanced types
 type ChainData = {
@@ -91,13 +91,8 @@ type AIInsight = {
   timeHorizon?: string;
 };
 
-// Make sure AIInsightResponse has the same properties as AIInsight type
-interface AIInsightResponse {
-  conclusion: string;
-  bullishFactors: string[];
-  bearishFactors: string[];
-  recommendation: string;
-  confidence: number;
+// Extended AIInsightResponse to include additional properties
+interface ExtendedAIInsightResponse extends AIInsightResponse {
   riskLevel?: "low" | "medium" | "high";
   priceTarget?: number;
   timeHorizon?: string;
@@ -193,7 +188,7 @@ const AnalyticsDashboard: React.FC = () => {
     setRefreshError(null);
     
     try {
-      // Refresh context data
+      // Refresh context data with current timeframe
       await contextData.refreshData();
       
       // Refresh local news data
@@ -201,13 +196,16 @@ const AnalyticsDashboard: React.FC = () => {
       setNews(mockNews);
       
       setLastRefresh(new Date());
+      
+      // Log that we're using actual API services
+      console.log(`Using CoinGecko API for market data and Santiment API for sentiment analysis. Timeframe: ${timeframe}`);
     } catch (error) {
       console.error("Error refreshing data:", error);
       setRefreshError(error instanceof Error ? error.message : "Failed to refresh data");
     } finally {
       setIsRefreshing(false);
     }
-  }, [contextData, activeToken, generateMockNews]);
+  }, [contextData, activeToken, timeframe, generateMockNews]);
 
   // Auto-refresh functionality
   useEffect(() => {
@@ -269,10 +267,14 @@ const AnalyticsDashboard: React.FC = () => {
 
   const currentTokenData = marketData?.[activeToken];
   const currentSentimentData = contextSentimentData?.[activeToken];
-  const currentAIInsights = contextAiInsights?.[activeToken];
+  // Cast to ExtendedAIInsightResponse to handle additional properties
+  const currentAIInsights = contextAiInsights?.[activeToken] as ExtendedAIInsightResponse;
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* AgentChatWidget - Floating bot interface */}
+      <AgentChatWidget initialExpanded={false} />
+      
       {/* Enhanced Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
         <div>
@@ -290,6 +292,10 @@ const AnalyticsDashboard: React.FC = () => {
           <div className="flex items-center mt-2 text-sm text-silver/70">
             <Timer className="h-3 w-3 mr-1" />
             Last updated: {lastRefresh.toLocaleTimeString()}
+          </div>
+          <div className="flex items-center mt-1 text-xs text-silver/50">
+            <Globe className="h-3 w-3 mr-1" />
+            Market data: CoinGecko API • Sentiment analysis: Santiment API
           </div>
         </div>
         
@@ -752,6 +758,9 @@ const AnalyticsDashboard: React.FC = () => {
               <CardTitle className="text-silver-bright flex items-center">
                 <Sparkles className="h-5 w-5 mr-2 text-primary" />
                 AI Market Analysis
+                <Badge variant="outline" className="ml-auto text-xs">
+                  Gemini
+                </Badge>
               </CardTitle>
               {currentAIInsights && (
                 <CardDescription className="flex justify-between items-center">
