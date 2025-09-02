@@ -6,6 +6,22 @@ const path = require('path');
 const fs = require('fs');
 const bodyParser = require('body-parser');
 
+// Add error handling for database initialization
+let db;
+try {
+  db = require('./db.cjs');
+  console.log('Database module loaded successfully');
+} catch (error) {
+  console.error('Error loading database module:', error.message);
+  // Create a mock database if the real one fails to load
+  db = {
+    getUserProfile: () => Promise.resolve(null),
+    saveUserProfile: () => Promise.resolve({}),
+    getUserTransactions: () => Promise.resolve([]),
+    addTransaction: () => Promise.resolve({})
+  };
+}
+
 // Create Express app
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -108,6 +124,112 @@ app.post('/api/agent/chat', (req, res) => {
 // Endpoint to get chat history
 app.get('/api/agent/history', (req, res) => {
   res.json({ history: chatHistory });
+});
+
+// User profile endpoints
+app.get('/api/users/profile', async (req, res) => {
+  try {
+    const { walletAddress } = req.query;
+    
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'Wallet address is required' });
+    }
+    
+    if (!db || !db.getUserProfile) {
+      console.error('Database module not properly initialized');
+      return res.status(503).json({ 
+        error: 'Database service unavailable',
+        message: 'Profile service is currently unavailable. Please try again later.' 
+      });
+    }
+    
+    const user = await db.getUserProfile(walletAddress);
+    
+    if (user) {
+      // Format user data for frontend
+      res.json({
+        id: user.id,
+        walletAddress: user.wallet_address,
+        username: user.username,
+        email: user.email,
+        avatarUrl: user.avatar_url,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at
+      });
+    } else {
+      // If user not found, return empty profile instead of 404
+      res.json({
+        walletAddress,
+        username: '',
+        email: '',
+        avatarUrl: '',
+      });
+    }
+  } catch (err) {
+    console.error('Error fetching user profile:', err);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: err.message || 'Failed to fetch user profile'
+    });
+  }
+});
+
+app.post('/api/users/profile', async (req, res) => {
+  try {
+    const { walletAddress, username, email, avatarUrl } = req.body;
+    
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'Wallet address is required' });
+    }
+    
+    const user = await db.saveUserProfile(walletAddress, username, email, avatarUrl);
+    
+    res.json({
+      id: user.id,
+      walletAddress: user.walletAddress,
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      updatedAt: user.updatedAt
+    });
+  } catch (err) {
+    console.error('Error saving user profile:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/users/transactions', async (req, res) => {
+  try {
+    const { walletAddress, limit = 10 } = req.query;
+    
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'Wallet address is required' });
+    }
+    
+    const transactions = await db.getUserTransactions(walletAddress, parseInt(limit));
+    
+    res.json({ transactions });
+  } catch (err) {
+    console.error('Error fetching user transactions:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/users/transactions', async (req, res) => {
+  try {
+    const { walletAddress, type, amount, symbol, status, txHash } = req.body;
+    
+    if (!walletAddress || !type || !amount) {
+      return res.status(400).json({ error: 'Wallet address, type, and amount are required' });
+    }
+    
+    const transaction = await db.addTransaction(walletAddress, type, amount, symbol, status, txHash);
+    
+    res.json(transaction);
+  } catch (err) {
+    console.error('Error adding transaction:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Start the server

@@ -49,18 +49,31 @@ $backendJob = Start-Job -ScriptBlock {
     node agent-server.cjs
 }
 
-# Wait a moment for backend to start
-Start-Sleep -Seconds 2
+# Wait longer for backend to start
+Write-Host "Waiting for backend server to start..." -ForegroundColor Yellow
+$maxAttempts = 10
+$attempt = 0
+$backendRunning = $false
 
-# Check if backend started successfully
-$backendRunning = Test-PortInUse -Port 3002
-if ($backendRunning) {
-    Write-Host "Agent server started successfully on http://localhost:3002" -ForegroundColor Green
-} else {
+while ($attempt -lt $maxAttempts -and -not $backendRunning) {
+    $attempt++
+    Start-Sleep -Seconds 1
+    $backendRunning = Test-PortInUse -Port 3002
+    if ($backendRunning) {
+        Write-Host "Agent server started successfully on http://localhost:3002" -ForegroundColor Green
+        break
+    }
+    Write-Host "Waiting for agent server... (Attempt $attempt of $maxAttempts)" -ForegroundColor Yellow
+}
+
+# Only check backend output if it's not running after all attempts
+if (-not $backendRunning) {
     Write-Host "Failed to start agent server on port 3002" -ForegroundColor Red
     Write-Host "Check backend job for errors:" -ForegroundColor Red
     Receive-Job $backendJob
-    Exit 1
+    
+    # Don't exit immediately, display the error and continue anyway
+    Write-Host "Continuing with startup despite backend issues..." -ForegroundColor Yellow
 }
 
 # Start frontend server

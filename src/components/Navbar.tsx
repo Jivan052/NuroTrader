@@ -18,6 +18,7 @@ const Navbar = () => {
 
   const navItems: NavItem[] = [
     { name: "Analytics", href: "/analytics", isPageLink: true },
+    { name: "Profile", href: "/profile", isPageLink: true },
     { name: "Docs", href: "#docs" }
   ];
 

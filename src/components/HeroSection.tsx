@@ -2,7 +2,13 @@ import { motion } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, TrendingUp, Wallet, Play, Loader } from "lucide-react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ArrowRight, FileText, TrendingUp, Wallet, Play, Loader, User } from "lucide-react";
 import heroDashboard from "@/assets/hero-dashboard.jpg";
 import networkBg from "@/assets/network-bg.jpg";
 import { 
@@ -45,7 +51,7 @@ const HeroSection = () => {
   // Add any effects you need here
 
   return (
-    <>
+    <TooltipProvider>
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">{/* Added pt-16 for navbar space */}
         {/* Background with animated particles */}
         <div className="absolute inset-0 z-0">
@@ -146,24 +152,65 @@ const HeroSection = () => {
                 transition={{ duration: 0.8, delay: 0.6 }}
               >
                 {/* Using ThirdWeb's ConnectWallet button with custom styling */}
-                <ConnectWallet 
-                  theme="dark"
-                  btnTitle="Connect Wallet"
-                  modalSize="wide"
-                  welcomeScreen={{
-                    title: "NeuroTrader",
-                    subtitle: "Connect your wallet to access your personalized AI trading analytics",
-                  }}
-                  modalTitle="Connect Your Wallet"
-                  detailsBtn={() => {
-                    return walletData ? (
-                      <Button variant="hero" size="lg" className="group" onClick={disconnect}>
-                        {walletData.address.substring(0, 6)}...{walletData.address.substring(walletData.address.length - 4)}
-                        <Wallet className="ml-2 h-5 w-5" />
-                      </Button>
-                    ) : null;
-                  }}
-                />
+                {!isConnected ? (
+                  <ConnectWallet 
+                    theme="dark"
+                    btnTitle="Connect Wallet"
+                    modalSize="wide"
+                    welcomeScreen={{
+                      title: "NeuroTrader",
+                      subtitle: "Connect your wallet to access your personalized AI trading analytics",
+                    }}
+                    modalTitle="Connect Your Wallet"
+                  />
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <Button variant="hero" size="lg" className="group relative" asChild>
+                            <Link to="/profile">
+                              <span className="flex items-center">
+                                {walletData?.address.substring(0, 6)}...{walletData?.address.substring(walletData.address.length - 4)}
+                                <User className="ml-2 h-5 w-5" />
+                              </span>
+                              <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                              </span>
+                              <span className="sr-only">View Profile</span>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="bg-background/90 backdrop-blur-sm border-primary/20">
+                          <p>View your wallet profile</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </motion.div>
+                    
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="lg" className="group border-primary/20" onClick={disconnect}>
+                            <span className="flex items-center">
+                              <Wallet className="mr-2 h-5 w-5" />
+                              Wallet
+                            </span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="bg-background/90 backdrop-blur-sm border-primary/20">
+                          <p>Manage wallet connection</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </motion.div>
+                  </div>
+                )}
                 <Button variant="silver" size="lg" className="group" asChild>
                   <Link to="/analytics">
                     <FileText className="mr-2 h-10 w-10" />
@@ -374,7 +421,7 @@ const HeroSection = () => {
       </section>
       
       {/* ThirdWeb handles the wallet modal internally */}
-    </>
+    </TooltipProvider>
   );
 
   // Custom wallet info display would go here if needed
