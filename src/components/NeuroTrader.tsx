@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import WaitingListCounter from "@/components/WaitingListCounter";
 import { 
   Zap, 
   Shield, 
@@ -76,6 +77,21 @@ const NeuroTrader = () => {
             Your AI Trading Agent powered by advanced algorithms and gasless execution
           </p>
         </motion.div>
+
+        <div className="grid lg:grid-cols-12 gap-6 mb-12">
+          <div className="lg:col-span-8">
+            <div className="text-left">
+              <h3 className="text-2xl font-bold text-silver-bright mb-4">Why Choose NeuroTrader</h3>
+              <p className="text-muted-foreground">
+                Our AI-powered trading platform uses neural networks and advanced algorithms to provide you with
+                unparalleled market insights and trading opportunities. Reserve your spot today for early access.
+              </p>
+            </div>
+          </div>
+          <div className="lg:col-span-4">
+            <WaitingListCounter />
+          </div>
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Features */}

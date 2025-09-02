@@ -22,13 +22,31 @@ try {
   };
 }
 
+// Load waitlist module
+let waitlist;
+try {
+  waitlist = require('./waitlist.cjs');
+  console.log('Waitlist module loaded successfully');
+} catch (error) {
+  console.error('Error loading waitlist module:', error.message);
+  // Create a mock waitlist module if the real one fails to load
+  waitlist = {
+    checkWaitlist: () => Promise.resolve({ exists: false, data: null }),
+    addToWaitlist: () => Promise.resolve({}),
+    getWaitlistCount: () => Promise.resolve(0),
+    getAllWaitlistEntries: () => Promise.resolve([]),
+    updateWaitlistStatus: () => Promise.resolve({})
+  };
+}
+
 // Create Express app
 const app = express();
 const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:8080', 'http://127.0.0.1:8080'],
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:8080', 'http://127.0.0.1:8080', 
+           'http://localhost:8081', 'http://127.0.0.1:8081'], // Add port 8081 for Vite
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -229,6 +247,105 @@ app.post('/api/users/transactions', async (req, res) => {
   } catch (err) {
     console.error('Error adding transaction:', err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Waitlist endpoints
+app.get('/api/waitlist/check', async (req, res) => {
+  try {
+    const { walletAddress } = req.query;
+    
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'Wallet address is required' });
+    }
+    
+    const result = await waitlist.checkWaitlist(walletAddress);
+    res.json({ exists: result.exists });
+  } catch (err) {
+    console.error('Error checking waitlist status:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/waitlist/join', async (req, res) => {
+  try {
+    const { walletAddress, name, email, reason } = req.body;
+    
+    if (!walletAddress || !name || !email) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        message: 'Wallet address, name, and email are required' 
+      });
+    }
+    
+    // Check if already in waitlist
+    const existingEntry = await waitlist.checkWaitlist(walletAddress);
+    if (existingEntry.exists) {
+      return res.status(409).json({ 
+        error: 'Already registered',
+        message: 'This wallet address is already registered on the waiting list'
+      });
+    }
+    
+    // Add to waitlist
+    const result = await waitlist.addToWaitlist(walletAddress, name, email, reason);
+    res.status(201).json(result);
+  } catch (err) {
+    console.error('Error adding to waitlist:', err);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: err.message || 'Failed to join the waiting list'
+    });
+  }
+});
+
+app.get('/api/waitlist/count', async (req, res) => {
+  try {
+    const count = await waitlist.getWaitlistCount();
+    res.json({ count });
+  } catch (err) {
+    console.error('Error getting waitlist count:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin endpoints - These should be protected in production
+app.get('/api/admin/waitlist', async (req, res) => {
+  try {
+    const { limit = 100, offset = 0, status } = req.query;
+    const entries = await waitlist.getAllWaitlistEntries(
+      parseInt(limit), 
+      parseInt(offset),
+      status
+    );
+    
+    res.json({ entries });
+  } catch (err) {
+    console.error('Error fetching waitlist entries:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/waitlist/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ 
+        error: 'Invalid status',
+        message: 'Status must be one of: pending, approved, rejected'
+      });
+    }
+    
+    const result = await waitlist.updateWaitlistStatus(id, status);
+    res.json(result);
+  } catch (err) {
+    console.error('Error updating waitlist status:', err);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: err.message || 'Failed to update status'
+    });
   }
 });
 

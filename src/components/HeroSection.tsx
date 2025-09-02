@@ -127,7 +127,7 @@ const HeroSection = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
                 >
-                  <span className="text-primary">Autonomous</span><br />
+                  <span className="text-primary">Advanced</span><br />
                   <span className="text-silver-bright">Analytics &</span><br />
                   <span className="text-silver-bright">Trading</span><br />
                   <span className="text-silver text-4xl lg:text-5xl">for Web3</span>
@@ -212,7 +212,7 @@ const HeroSection = () => {
                   </div>
                 )}
                 <Button variant="silver" size="lg" className="group" asChild>
-                  <Link to="/analytics">
+                  <Link to="https://github.com/Jivan052/NuroTrader">
                     <FileText className="mr-2 h-10 w-10" />
                     Docs
                   </Link>

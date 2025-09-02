@@ -19,7 +19,7 @@ const Navbar = () => {
   const navItems: NavItem[] = [
     { name: "Analytics", href: "/analytics", isPageLink: true },
     { name: "Profile", href: "/profile", isPageLink: true },
-    { name: "Docs", href: "#docs" }
+    { name: "Docs", href: "https://github.com/Jivan052/NuroTrader" }
   ];
 
   return (
@@ -83,8 +83,9 @@ const Navbar = () => {
               variant="hero" 
               size="sm" 
               className="hidden sm:inline-flex"
+              asChild
             >
-              Get Started
+              <Link to="/waitlist">Join Waitlist</Link>
             </Button>
 
             {/* Mobile menu button */}
@@ -139,8 +140,8 @@ const Navbar = () => {
               )
             ))}
             <div className="px-4 pt-2">
-              <Button variant="hero" className="w-full" size="sm">
-                Get Started
+              <Button variant="hero" className="w-full" size="sm" asChild>
+                <Link to="/waitlist" onClick={() => setIsMenuOpen(false)}>Join Waitlist</Link>
               </Button>
             </div>
           </div>

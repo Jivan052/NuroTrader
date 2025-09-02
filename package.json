@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "emailjs": {
+    "serviceId": "service_neurotrader",
+    "templateId": "template_waitlist",
+    "publicKey": "YOUR_EMAILJS_PUBLIC_KEY"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -15,6 +20,7 @@
   },
   "dependencies": {
     "@0xgasless/agentkit": "^0.0.16",
+    "@emailjs/browser": "^4.4.1",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
