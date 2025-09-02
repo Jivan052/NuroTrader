@@ -1,6 +1,6 @@
-# NeuroTrader Documentation
+# NuroTrader Documentation
 
-This document provides comprehensive information about the NeuroTrader Analytics Platform, including architecture, components, configuration options, and troubleshooting guides.
+This document provides comprehensive information about the NuroTrader Analytics Platform, including architecture, components, configuration options, and troubleshooting guides.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ This document provides comprehensive information about the NeuroTrader Analytics
 
 ## Architecture Overview
 
-NeuroTrader combines a React frontend with a Node.js backend to create a seamless crypto analytics platform:
+NuroTrader combines a React frontend with a Node.js backend to create a seamless crypto analytics platform:
 
 ```
 ┌─────────────────┐         ┌──────────────────┐         ┌────────────────────┐
