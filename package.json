@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "agent": "cd backend && node agent-server.cjs"
+    "agent": "cd backend && node agent-server.cjs",
+    "docs:serve": "npx serve docs",
+    "start": "powershell -ExecutionPolicy Bypass -File .\\start-agent-app.ps1"
   },
   "dependencies": {
     "@0xgasless/agentkit": "^0.0.16",
