@@ -1,5 +1,5 @@
 
-# NeuroTrader Analytics Platform
+# NuroTrader Analytics Platform
 
 ![NeuroTrader](src/assets/hero-dashboard.jpg)
 
