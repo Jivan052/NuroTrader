@@ -29,15 +29,17 @@ import { CheckCircle, XCircle, Clock, Search, Download, RefreshCw, UserCheck, Us
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from "sonner";
+import { waitlistService } from '@/services/waitlistService';
 
 interface WaitlistEntry {
-  id: number;
-  wallet_address: string;
+  id: string;
+  walletAddress: string;
   name: string;
   email: string;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
+  joinedAt: string;
+  referralCode?: string;
 }
 
 const WaitingListAdmin: React.FC = () => {
@@ -52,12 +54,12 @@ const WaitingListAdmin: React.FC = () => {
   const fetchEntries = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3002/api/admin/waitlist');
+      // Use Firebase service to get waitlist entries
+      const result = await waitlistService.getWaitlistedUsers(1, 50); // Get first 50 entries
       
-      if (response.ok) {
-        const data = await response.json();
-        setEntries(data.entries);
-        setFilteredEntries(data.entries);
+      if (result.success) {
+        setEntries(result.data);
+        setFilteredEntries(result.data);
       } else {
         toast.error("Failed to fetch waitlist entries");
       }
@@ -84,7 +86,7 @@ const WaitingListAdmin: React.FC = () => {
       results = results.filter(entry => 
         entry.name.toLowerCase().includes(query) ||
         entry.email.toLowerCase().includes(query) ||
-        entry.wallet_address.toLowerCase().includes(query) ||
+        entry.walletAddress.toLowerCase().includes(query) ||
         entry.reason?.toLowerCase().includes(query)
       );
     }
@@ -98,19 +100,21 @@ const WaitingListAdmin: React.FC = () => {
   }, [searchQuery, statusFilter, entries]);
 
   // Update entry status
-  const updateStatus = async (id: number, newStatus: 'pending' | 'approved' | 'rejected') => {
+  const updateStatus = async (id: string, newStatus: 'pending' | 'approved' | 'rejected') => {
     setIsUpdating(prev => ({ ...prev, [id]: true }));
     
     try {
-      const response = await fetch(`http://localhost:3002/api/admin/waitlist/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      // Find the entry to get the wallet address
+      const entry = entries.find(entry => entry.id === id);
+      if (!entry) {
+        toast.error("Entry not found");
+        return;
+      }
       
-      if (response.ok) {
+      // Use Firebase service to update user status
+      const result = await waitlistService.updateUserStatus(entry.walletAddress, newStatus);
+      
+      if (result.success) {
         // Update local state
         setEntries(prev => 
           prev.map(entry => 
@@ -120,7 +124,7 @@ const WaitingListAdmin: React.FC = () => {
         
         toast.success(`Status updated to ${newStatus}`);
       } else {
-        toast.error("Failed to update status");
+        toast.error(result.message || "Failed to update status");
       }
     } catch (error) {
       console.error("Error updating status:", error);
@@ -139,10 +143,10 @@ const WaitingListAdmin: React.FC = () => {
         entry.id,
         `"${entry.name.replace(/"/g, '""')}"`,
         `"${entry.email.replace(/"/g, '""')}"`,
-        entry.wallet_address,
+        entry.walletAddress,
         `"${(entry.reason || '').replace(/"/g, '""')}"`,
         entry.status,
-        entry.created_at
+        entry.joinedAt
       ].join(','))
     ].join('\n');
     
@@ -347,12 +351,12 @@ const WaitingListAdmin: React.FC = () => {
                             <TableCell className="font-medium">{entry.name}</TableCell>
                             <TableCell>{entry.email}</TableCell>
                             <TableCell className="font-mono text-xs">
-                              {`${entry.wallet_address.substring(0, 8)}...${entry.wallet_address.substring(entry.wallet_address.length - 6)}`}
+                              {`${entry.walletAddress.substring(0, 8)}...${entry.walletAddress.substring(entry.walletAddress.length - 6)}`}
                             </TableCell>
                             <TableCell className="max-w-xs truncate">
                               {entry.reason || "-"}
                             </TableCell>
-                            <TableCell>{formatDate(entry.created_at)}</TableCell>
+                            <TableCell>{formatDate(entry.joinedAt)}</TableCell>
                             <TableCell>{getStatusBadge(entry.status)}</TableCell>
                             <TableCell className="text-right">
                               {entry.status !== 'approved' && (

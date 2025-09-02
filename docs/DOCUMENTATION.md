@@ -29,8 +29,10 @@ NuroTrader combines a React frontend with a Node.js backend to create a seamless
          ▼                           ▼                             ▼
 ┌─────────────────┐         ┌──────────────────┐         ┌────────────────────┐
 │                 │         │                  │         │                    │
-│   UI Components │         │   SQLite Storage │         │   Blockchain Data  │
-│                 │         │                  │         │                    │
+│   UI Components │         │ Firebase Services│         │   Blockchain Data  │
+│                 │         │  • Firestore     │         │                    │
+│                 │         │  • Auth          │         │                    │
+│                 │         │  • Realtime DB   │         │                    │
 └─────────────────┘         └──────────────────┘         └────────────────────┘
 ```
 
@@ -45,11 +47,21 @@ The frontend follows a component-based architecture with:
 
 ### Backend Architecture
 
-The backend uses a simple Express server that:
+The backend architecture consists of:
 
-1. Receives requests from the frontend
-2. Processes them using AgentKit
-3. Returns responses to the frontend
+1. **Express Server**: Handles API requests from the frontend
+2. **AgentKit Integration**: Processes AI agent requests
+3. **Firebase Services**:
+   - **Firestore**: Document database for structured data storage
+   - **Realtime Database**: Real-time data synchronization
+   - **Authentication**: User authentication and session management
+
+The data flow is as follows:
+
+1. Frontend sends requests to Express API
+2. Express processes requests and interacts with Firebase/AgentKit
+3. Data is stored/retrieved from Firebase services
+4. Responses are returned to the frontend
 
 ## Component Documentation
 
@@ -128,6 +140,17 @@ The chart component uses Recharts to visualize price data and market trends.
 - **Comparison Mode**: Compare multiple tokens
 - **Technical Indicators**: Moving averages and other indicators
 
+## Firebase Integration
+
+The application uses Firebase for user management, waitlist functionality, and data storage. For detailed information about the Firebase integration, please see the [Firebase Integration Documentation](./FIREBASE_INTEGRATION.md).
+
+### Key Firebase Features
+
+- **Waitlist Management**: Store and manage users on the waiting list
+- **User Authentication**: Secure user authentication with wallet connections
+- **Real-time Updates**: Live updates for waitlist counts and user status
+- **Data Persistence**: Reliable storage for user information
+
 ## API Reference
 
 ### Agent API Endpoints
@@ -160,14 +183,28 @@ Send a message to the AI agent.
 
 ### Environment Variables
 
-Create a `.env` file in the `backend/agentkit/` directory with the following variables:
+Create a `.env` file in the root directory with the following variables:
 
 ```
+# AgentKit configuration
 AGENTKIT_API_KEY=your_api_key_here
 MODEL_PROVIDER=openai
 MODEL_NAME=gpt-4o
 ENABLE_TRACING=false
 LOG_LEVEL=info
+
+# Firebase configuration
+VITE_FIREBASE_API_KEY=your-firebase-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+VITE_FIREBASE_DATABASE_URL=https://your-project-id-default-rtdb.firebaseio.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
+
+# Other API keys
+VITE_EMAILJS_PUBLIC_KEY=your-emailjs-public-key
 ```
 
 ### Frontend Configuration

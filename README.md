@@ -63,12 +63,23 @@ NeuroTrader/
    ```
 
 3. **Configure environment variables**
-   - Create a `.env` file in the `backend/agentkit/` directory
-   - Set up your AgentKit API keys and configuration:
+   - Create a `.env` file in the root directory (or use the provided `.env.example` as a template)
+   - Set up your API keys and configurations:
    ```
+   # AgentKit configuration
    AGENTKIT_API_KEY=your_api_key_here
    MODEL_PROVIDER=openai
    MODEL_NAME=gpt-4o
+   
+   # Firebase configuration
+   VITE_FIREBASE_API_KEY=your-firebase-api-key
+   VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+   VITE_FIREBASE_DATABASE_URL=https://your-project-id-default-rtdb.firebaseio.com
+   VITE_FIREBASE_PROJECT_ID=your-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+   VITE_FIREBASE_APP_ID=your-app-id
+   VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
    ```
 
 4. **Install AgentKit CLI** (if not already installed)
@@ -160,7 +171,9 @@ The AI agent is powered by AgentKit and features:
 - **Node.js** - JavaScript runtime
 - **Express** - Web server framework
 - **AgentKit** - AI agent framework
-- **SQLite** - Lightweight database (for persistent storage)
+- **Firebase** - Authentication, Database, and Cloud Storage
+- **Firestore** - NoSQL document database
+- **Realtime Database** - Real-time data synchronization
 - **dotenv** - Environment variable management
 
 ### Blockchain Integration

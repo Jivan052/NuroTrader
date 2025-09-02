@@ -34,6 +34,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from "sonner";
 import emailjs from '@emailjs/browser';
+import { waitlistService } from '@/services/waitlistService';
 
 // Create schema for form validation
 const formSchema = z.object({
@@ -69,30 +70,35 @@ const WaitingListPage: React.FC = () => {
 
   // Check if user has already submitted
   useEffect(() => {
-    if (address) {
-      // Fetch from backend to check if the user is already in the waiting list
-      fetch(`http://localhost:3002/api/waitlist/check?walletAddress=${address}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.exists) {
+    // Function to check waitlist status
+    const checkWaitlistStatus = async () => {
+      if (address) {
+        try {
+          // Use Firebase service to check if user exists
+          const exists = await waitlistService.checkIfUserExists(address);
+          if (exists) {
             setIsSubmitted(true);
             toast.info("You're already on our waiting list!");
           }
-        })
-        .catch(error => {
+        } catch (error) {
           console.error("Error checking waiting list status:", error);
-        });
-    }
+        }
+      }
+    };
     
-    // Fetch total count
-    fetch("http://localhost:3002/api/waitlist/count")
-      .then(response => response.json())
-      .then(data => {
-        setWaitingListCount(data.count);
-      })
-      .catch(error => {
+    // Function to fetch waitlist count
+    const fetchWaitlistCount = async () => {
+      try {
+        // Use Firebase service to get count
+        const count = await waitlistService.getWaitlistCount();
+        setWaitingListCount(count);
+      } catch (error) {
         console.error("Error fetching waiting list count:", error);
-      });
+      }
+    };
+    
+    checkWaitlistStatus();
+    fetchWaitlistCount();
   }, [address]);
 
   // Handle form submission
@@ -105,36 +111,32 @@ const WaitingListPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Submit to backend
-      const response = await fetch('http://localhost:3002/api/waitlist/join', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: address,
-          name: values.name,
-          email: values.email,
-          reason: values.reason || '',
-        }),
-      });
+      // Submit to Firebase using our service
+      const userData = {
+        walletAddress: address,
+        name: values.name,
+        email: values.email,
+        reason: values.reason || '',
+      };
+      
+      const result = await waitlistService.addToWaitlist(userData);
 
-      if (response.ok) {
+      if (result.success) {
         setIsSubmitted(true);
         
         // Send email notification using EmailJS
         await emailjs.send(
-          'service_neurotrader', // Replace with your EmailJS service ID
-          'template_waitlist', // Replace with your EmailJS template ID
+          'service_neurotrader', // EmailJS service ID
+          'template_waitlist', // EmailJS template ID
           {
-            to_email: 'admin@neurotrader.com', // Replace with your admin email
+            to_email: 'admin@neurotrader.com', // Admin email
             from_name: values.name,
             from_email: values.email,
             wallet_address: address,
             reason: values.reason || 'No reason provided',
             message: `New user ${values.name} has joined the waiting list with wallet address ${address}`,
           },
-          'YOUR_EMAILJS_PUBLIC_KEY' // Replace with your EmailJS public key
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY // Get from environment variable
         );
         
         // Update the counter
@@ -142,8 +144,7 @@ const WaitingListPage: React.FC = () => {
         
         toast.success("Successfully joined the waiting list!");
       } else {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to join the waiting list");
+        throw new Error(result.message || "Failed to join the waiting list");
       }
     } catch (error) {
       console.error("Error joining waiting list:", error);

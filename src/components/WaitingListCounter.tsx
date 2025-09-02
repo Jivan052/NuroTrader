@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import { waitlistService } from "../services/waitlistService";
 
 const WaitingListCounter: React.FC = () => {
   const [count, setCount] = useState<number>(0);
@@ -12,39 +13,12 @@ const WaitingListCounter: React.FC = () => {
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        // Support multiple backend URLs (localhost with various ports and production)
-        const urls = [
-          'http://localhost:3002/api/waitlist/count',
-          'http://localhost:8080/api/waitlist/count',
-          'http://localhost:8081/api/waitlist/count',
-          window.location.origin + '/api/waitlist/count'
-        ];
-        
-        // Try each URL until one works
-        for (const url of urls) {
-          try {
-            const response = await fetch(url, { 
-              method: 'GET',
-              headers: { 'Content-Type': 'application/json' },
-              // Adding these options for better compatibility
-              mode: 'cors',
-              cache: 'no-cache',
-              credentials: 'same-origin'
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              setCount(data.count || 0);
-              break; // Stop trying URLs once successful
-            }
-          } catch (urlError) {
-            console.log(`Could not fetch from ${url}:`, urlError);
-            // Continue to next URL
-          }
-        }
+        // Use Firebase service to fetch the waitlist count
+        const waitlistCount = await waitlistService.getWaitlistCount();
+        setCount(waitlistCount);
       } catch (error) {
         console.error("Error fetching waitlist count:", error);
-        // Fallback to a default count if all fetch attempts fail
+        // Fallback to a default count if Firebase fetch fails
         setCount(Math.floor(Math.random() * 50) + 10); // Random fallback number between 10-60
       } finally {
         setIsLoading(false);
